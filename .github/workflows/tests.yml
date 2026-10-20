@@ -58,7 +58,51 @@ jobs:
           python -m pip cache purge || true
           df -h /
 
+      - name: Focused regression (7 previously failing nodes)
+        id: focused
+        env:
+          # Neutral, step-scoped identity for temp-fixture git commits.
+          # No global git config, no credentials, no host mutation.
+          GIT_AUTHOR_NAME: CCTA CI
+          GIT_AUTHOR_EMAIL: ccta-ci@users.noreply.github.com
+          GIT_COMMITTER_NAME: CCTA CI
+          GIT_COMMITTER_EMAIL: ccta-ci@users.noreply.github.com
+        run: |
+          mkdir -p .ci-out
+          {
+            echo "free_kb_before_focused=$(df -Pk "$GITHUB_WORKSPACE" | awk 'NR==2 {print $4}')"
+            df -h "$GITHUB_WORKSPACE" /tmp || true
+            df -i "$GITHUB_WORKSPACE" /tmp || true
+          } | tee .ci-out/focused_disk.txt
+          set +e
+          timeout --signal=TERM 1800 \
+            python -m pytest -q -p no:cacheprovider \
+              -m "not gpu and not network" \
+              --tb=short \
+              "tests/apps/test_viewer_build_identity.py::test_cleanliness_excludes_report_only_artifacts" \
+              "tests/apps/test_viewer_build_identity.py::test_unrelated_repo_root_rejected" \
+              "tests/apps/test_viewer_build_identity.py::test_standalone_mint_rejects_wrong_existing_sha" \
+              "tests/apps/test_viewer_build_identity.py::test_cleanliness_allows_ordinary_caches_and_ignored_reports" \
+              "tests/apps/test_viewer_build_identity.py::test_nested_git_repository_directory_summary_fails_closed[.py]" \
+              "tests/apps/test_viewer_build_identity.py::test_nested_git_repository_directory_summary_fails_closed[.pyw]" \
+              "tests/apps/test_viewer_build_identity.py::test_nested_git_repository_directory_summary_fails_closed[.pyi]" \
+              > .ci-out/focused.out 2>&1
+          rc=$?
+          set -e
+          echo "focused_exit=$rc" > .ci-out/focused.exit
+          cat .ci-out/focused.out
+          echo "focused_exit=$rc (step exits with the real pytest code)"
+          exit $rc
+
       - name: pytest (full suite, frozen serial argv)
+        if: steps.focused.outcome == 'success'
+        env:
+          # Neutral, per-job identity for temp-fixture git commits created by
+          # tests. No global git config, no credentials, no host mutation.
+          GIT_AUTHOR_NAME: CCTA CI
+          GIT_AUTHOR_EMAIL: ccta-ci@users.noreply.github.com
+          GIT_COMMITTER_NAME: CCTA CI
+          GIT_COMMITTER_EMAIL: ccta-ci@users.noreply.github.com
         run: |
           mkdir -p .ci-out
           FREE_KB=$(df -Pk "$GITHUB_WORKSPACE" | awk 'NR==2 {print $4}')

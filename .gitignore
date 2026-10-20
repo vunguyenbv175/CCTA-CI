@@ -12,6 +12,8 @@ __pycache__/
 
 # Runtime / internal surfaces are never exported
 orchestration/
-reports/
+# Keep the empty harness directory shape, but never publish report content.
+reports/*
+!reports/.gitkeep
 webapp/node_modules/
 webapp/dist/

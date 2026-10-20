@@ -31,7 +31,7 @@
     "excluded": [
       {
         "pattern": "docs/, reports/, orchestration/, scripts/, vendor/, .github/",
-        "reason": "private governance/internal reports/runtime evidence/vendored packages"
+        "reason": "private governance/internal reports/runtime evidence/vendored packages; reports content remains excluded, only the empty reports/.gitkeep harness placeholder is present"
       },
       {
         "pattern": "tests/test_*.py (top level)",
@@ -1672,8 +1672,13 @@
     },
     {
       "public_path": ".gitignore",
-      "sha256": "00bb2cc893d967b5277b099f3dd00116c1f8c1b1b6699be198409fe14a6f641f",
-      "bytes": 223
+      "sha256": "7508cd4cf6ce1e54fd3b6e00f0c2ce1deb2440ae711fc67e7dbfcab354e849cd",
+      "bytes": 318
+    },
+    {
+      "public_path": "reports/.gitkeep",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
     },
     {
       "public_path": "conftest.py",
@@ -1682,8 +1687,8 @@
     },
     {
       "public_path": ".github/workflows/tests.yml",
-      "sha256": "d74a322a834ed9cea0bde0249e4d96f18ccf0199d3bdb0ba4b04b1db882dbdcf",
-      "bytes": 4353
+      "sha256": "52b7ee1b6280a270d549e898bfe3a735f1e592fef4d0aee4416be2815c7156f3",
+      "bytes": 6734
     }
   ],
   "workflow": {
@@ -1703,7 +1708,37 @@
       "not gpu and not network",
       "--durations=20"
     ],
-    "disk_remediation": "fixed allowlist + pip cache purge + 35 GiB preflight guard"
+    "disk_remediation": "fixed allowlist + pip cache purge + 35 GiB preflight guard",
+    "focused_nodes": [
+      "tests/apps/test_viewer_build_identity.py::test_cleanliness_excludes_report_only_artifacts",
+      "tests/apps/test_viewer_build_identity.py::test_unrelated_repo_root_rejected",
+      "tests/apps/test_viewer_build_identity.py::test_standalone_mint_rejects_wrong_existing_sha",
+      "tests/apps/test_viewer_build_identity.py::test_cleanliness_allows_ordinary_caches_and_ignored_reports",
+      "tests/apps/test_viewer_build_identity.py::test_nested_git_repository_directory_summary_fails_closed[.py]",
+      "tests/apps/test_viewer_build_identity.py::test_nested_git_repository_directory_summary_fails_closed[.pyw]",
+      "tests/apps/test_viewer_build_identity.py::test_nested_git_repository_directory_summary_fails_closed[.pyi]"
+    ],
+    "focused_argv": [
+      "python",
+      "-m",
+      "pytest",
+      "-q",
+      "-p",
+      "no:cacheprovider",
+      "-m",
+      "not gpu and not network",
+      "--tb=short",
+      "tests/apps/test_viewer_build_identity.py::test_cleanliness_excludes_report_only_artifacts",
+      "tests/apps/test_viewer_build_identity.py::test_unrelated_repo_root_rejected",
+      "tests/apps/test_viewer_build_identity.py::test_standalone_mint_rejects_wrong_existing_sha",
+      "tests/apps/test_viewer_build_identity.py::test_cleanliness_allows_ordinary_caches_and_ignored_reports",
+      "tests/apps/test_viewer_build_identity.py::test_nested_git_repository_directory_summary_fails_closed[.py]",
+      "tests/apps/test_viewer_build_identity.py::test_nested_git_repository_directory_summary_fails_closed[.pyw]",
+      "tests/apps/test_viewer_build_identity.py::test_nested_git_repository_directory_summary_fails_closed[.pyi]"
+    ],
+    "focused_timeout_seconds": 1800,
+    "full_timeout_seconds": 16800,
+    "full_gate": "The frozen full suite runs only when the focused step outcome is success; a focused failure stops the job and does not start the 2h suite."
   },
   "host_parity_guard": {
     "file": "conftest.py",
@@ -1713,5 +1748,28 @@
     ],
     "reason": "Private host-calibrated frozen digests read /proc/cpuinfo and accept only the owner's exact WSL2 CPU/Python/glibc fingerprint. The public-only root conftest deselects exactly those nodes with a printed reason on other hosts; all other tests in those modules run. The public run does not evaluate or claim the host-parity digests."
   },
-  "gate_statement": "The public workflow runs the included source/test closure only. It is not an admissible private pytest_full gate record, does not change private gate status, and must not be reported as a full private PASS. Cross-repo evidence acceptance requires a separate governed correction contract."
+  "gate_statement": "The public workflow runs the included source/test closure only. The frozen full suite starts only after the exact 7-node focused preflight succeeds. It is not an admissible private pytest_full gate record, does not change private gate status, and must not be reported as a full private PASS. Cross-repo evidence acceptance requires a separate governed correction contract.",
+  "harness_fix": {
+    "basis_public_head": "03a0f6dfadb04c8e36fe92e229ac07ab58a02486",
+    "private_candidate_sha": "6a43807215b14a828fad23716871ef548a5f5128",
+    "source_files_changed": 0,
+    "private_blob_mappings_unchanged": 199,
+    "public_head": null,
+    "note": "Published harness-only fix. No private T2 source/test file is modified; the 199 private blob mappings remain exact. Only generated harness files change: the CI workflow's step-scoped neutral git identity env, the focused 7-node preflight that gates the frozen full suite, the .gitignore exception for reports/.gitkeep, and the empty reports/.gitkeep directory shape. No private report content is copied.",
+    "focused_gate": "focused 7-node step must pass before the frozen full suite starts"
+  },
+  "harness_only_changes": [
+    {
+      "public_path": ".github/workflows/tests.yml",
+      "change": "Add neutral step-scoped GIT_AUTHOR_*/GIT_COMMITTER_* env for temp-fixture git commits, plus the exact 7-node focused preflight that gates the frozen full suite. No global git config, no credentials, no host mutation, no test source/assertion change, and no additional deselection."
+    },
+    {
+      "public_path": ".gitignore",
+      "change": "Ignore all reports content but keep the empty reports/.gitkeep directory shape."
+    },
+    {
+      "public_path": "reports/.gitkeep",
+      "change": "Empty directory-shape placeholder only; never private report content or fabricated evidence."
+    }
+  ]
 }
