@@ -1,0 +1,7 @@
+id = "report-drafter"
+version = "0.1.0"
+kind = "LLM"
+entrypoint = "draft:run"
+capabilities = ["REPORT_DRAFT"]
+claims = ["CLM-REP-001"]
+network_required = false

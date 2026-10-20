@@ -1,0 +1,7 @@
+id = "llm-overreach"
+version = "0.1.0"
+kind = "LLM"
+entrypoint = "x:run"
+capabilities = ["SEGMENTATION", "REPORT_DRAFT"]
+claims = ["CLM-SEG-001", "CLM-REP-001"]
+network_required = false

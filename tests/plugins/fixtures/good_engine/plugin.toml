@@ -1,0 +1,8 @@
+schema = "ccta.plugin.manifest.v1"
+id = "phase0-measure-engine"
+version = "1.0.0"
+kind = "DETERMINISTIC_ENGINE"
+entrypoint = "engine:run"
+capabilities = ["MEASUREMENT_SET"]
+claims = ["CLM-MEAS-001"]
+network_required = false

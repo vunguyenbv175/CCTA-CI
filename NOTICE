@@ -1,0 +1,17 @@
+CCTA-CI public export — NOTICE
+
+The source and tests in this repository are an owner-authorized snapshot of
+the private CCTA Studio codebase at private candidate
+6a43807215b14a828fad23716871ef548a5f5128.
+
+No third-party source code, wheels, npm tarballs or other vendored packages
+are redistributed in this repository.  The CI workflow installs the declared
+runtime/test dependencies (PyYAML, pydicom, NumPy, pytest) from the public
+Python Package Index; those packages remain under their own licenses and are
+not part of this repository's source.
+
+DICOM fixtures used by the tests are synthetic and contain no patient data.
+No clinical data, PHI, internal reports, governance ledgers, credentials or
+private-repository identifiers are included.
+
+This repository is for CI corroboration only and is not a clinical release.

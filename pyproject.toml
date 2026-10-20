@@ -1,0 +1,64 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ccta-studio"
+version = "0.1.0"
+description = "CCTA Analysis Platform — modular, reuse-first, clinically structured coronary CT analysis"
+requires-python = "==3.12.*"
+
+# Product dependencies are intentionally minimal at foundation phase.
+# The orchestration kernel adds none beyond PyYAML.
+# First governed Imaging Core admissions; owner decision per Master Plan §50B.
+dependencies = [
+    "pyyaml>=6.0",
+    "pydicom==3.0.2",
+    "numpy==2.5.2",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "ruff>=0.5",
+    "mypy>=1.10",
+]
+
+[tool.setuptools]
+# Orchestration is NOT a packaged product: it runs as scripts/module path,
+# cleanly separating the medical product from the agent workshop
+# (same boundary discipline as CMR Studio).
+packages = []
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = [
+    "gpu: requires GPU (must never run in the default suite)",
+    "network: requires network (must never run in the default suite)",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+# CSI-001 AC-007: the versioned runtime-evidence boundary stays outside lint.
+# Anything else under the gate roots is scanned.
+exclude = [
+    "orchestration/runtime",
+]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP"]
+
+[tool.mypy]
+python_version = "3.12"
+ignore_missing_imports = true
+check_untyped_defs = true
+warn_unused_ignores = true
+no_implicit_optional = true
+# CSI-001 AC-007: runtime evidence scripts are excluded from type gates.
+exclude = "^orchestration/runtime/"
+# WS02: apps/ and validation/ are PEP 420 namespace packages (no __init__.py
+# at their roots); this mapping setting is package DISCOVERY only - no new
+# dependencies are introduced.
+explicit_package_bases = true
+mypy_path = "."

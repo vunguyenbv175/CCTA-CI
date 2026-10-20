@@ -1,0 +1,7 @@
+id = "bad-claim"
+version = "0.1.0"
+kind = "DETERMINISTIC_ENGINE"
+entrypoint = "x:run"
+capabilities = ["MEASUREMENT_SET"]
+claims = ["CLM-NOPE-999"]
+network_required = false

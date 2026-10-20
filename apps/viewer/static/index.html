@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>CCTA Physician Viewer</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <main class="viewer-shell">
+    <header>
+      <h1>CCTA Physician Viewer</h1>
+      <label>Session <select id="session-select"><option>Loading…</option></select></label>
+      <button id="refresh" type="button">Refresh</button>
+    </header>
+    <section class="toolbar" aria-label="Viewer controls">
+      <span class="presets" id="presets"></span>
+      <button id="clear-wl" type="button">Clear WL</button>
+      <button id="open-qc" type="button">Open QC</button>
+    </section>
+    <section class="viewports" id="viewports" aria-label="Plane viewports"></section>
+    <section class="qc-panel" id="qc-panel" hidden aria-label="QC and provenance">
+      <h2>QC / provenance</h2>
+      <dl class="qc-outcome" id="qc-outcome"></dl>
+      <ol class="qc-ledger" id="qc-ledger"></ol>
+      <fieldset class="qc-correction" id="qc-correction" disabled>
+        <legend>Request correction</legend>
+        <label>Grade
+          <select id="correction-grade"></select>
+        </label>
+        <button id="submit-correction" type="button" disabled>Submit correction</button>
+        <p class="qc-note" id="correction-note"></p>
+      </fieldset>
+    </section>
+    <p id="status" role="status">Loading…</p>
+  </main>
+  <script src="/static/app.js" defer></script>
+</body>
+</html>

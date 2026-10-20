@@ -1,0 +1,114 @@
+name: ccta-public-ci
+
+# Owner-authorized public CI closure. Manual dispatch only: exactly one
+# bounded trial at a time, no push/PR trigger, no automatic retry.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ccta-public-trial
+  cancel-in-progress: false
+
+jobs:
+  full:
+    runs-on: ubuntu-latest
+    timeout-minutes: 300
+    steps:
+      # Fixed-allowlist disposable toolchain cleanup (private T2 remediation).
+      # Python, Node, git and build tools are retained; /opt/hostedtoolcache is
+      # not removed wholesale; no repository or test data is touched.
+      - name: Free disposable hosted-image disk space
+        run: |
+          set -euo pipefail
+          echo "== disk before cleanup =="; df -h / /tmp || true
+          df -i / /tmp || true
+          sudo apt-get clean || true
+          sudo rm -rf /var/lib/apt/lists/* || true
+          for d in /usr/share/dotnet /usr/local/lib/android /usr/lib/android-sdk \
+                   /opt/ghc /opt/hostedtoolcache/CodeQL /usr/local/swift \
+                   /usr/share/swift /usr/local/julia /usr/local/.ghcup /opt/az \
+                   /usr/local/share/powershell; do
+            if [ -e "$d" ]; then echo "removing $d"; sudo rm -rf "$d"; fi
+          done
+          if command -v docker >/dev/null 2>&1 && docker info >/dev/null 2>&1; then
+            docker image prune -af || true
+            docker container prune -f || true
+          fi
+          echo "== disk after cleanup =="; df -h / /tmp || true
+          df -Pk / | tail -1 | tee "$RUNNER_TEMP/disk_after_cleanup.txt"
+
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install runtime + dev deps (pinned per pyproject)
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install "pyyaml>=6.0" "pydicom==3.0.2" "numpy==2.5.2"
+          python -m pip install "pytest>=8.0"
+
+      - name: Purge pip download cache
+        run: |
+          python -m pip cache purge || true
+          df -h /
+
+      - name: pytest (full suite, frozen serial argv)
+        run: |
+          mkdir -p .ci-out
+          FREE_KB=$(df -Pk "$GITHUB_WORKSPACE" | awk 'NR==2 {print $4}')
+          {
+            echo "free_kb_before_pytest=$FREE_KB"
+            df -h "$GITHUB_WORKSPACE" /tmp || true
+            df -i "$GITHUB_WORKSPACE" /tmp || true
+            cat "$RUNNER_TEMP/disk_after_cleanup.txt" 2>/dev/null || true
+          } | tee .ci-out/disk_preflight.txt
+          if [ "$FREE_KB" -lt $((35*1024*1024)) ]; then
+            echo "FAIL-FAST: less than 35 GiB free before pytest; not starting the frozen suite" \
+              | tee -a .ci-out/disk_preflight.txt
+            echo "pytest_exit=86" > .ci-out/pytest_full.exit
+            exit 86
+          fi
+          printf 'step_started_at=%s\n' "$(date -u +%FT%TZ)" > .ci-out/step.sentinel
+          ( while :; do
+              printf '%s ' "$(date -u +%FT%TZ)"
+              df -Pk "$GITHUB_WORKSPACE" | awk 'NR==2 {printf "free_kb=%s ", $4}'
+              du -xsk /tmp/pytest-of-runner 2>/dev/null | awk '{printf "pytest_tmp_kb=%s ", $1}'
+              echo
+              sleep 60
+            done ) >> .ci-out/disk_usage.log 2>&1 &
+          SAMPLER=$!
+          cleanup() {
+            kill "$SAMPLER" 2>/dev/null || true
+            wait "$SAMPLER" 2>/dev/null || true
+            { df -h "$GITHUB_WORKSPACE" /tmp || true
+              du -xsk /tmp/* 2>/dev/null | sort -n | tail -10 || true
+            } >> .ci-out/disk_postmortem.txt 2>&1
+          }
+          trap cleanup EXIT
+          set +e
+          timeout --signal=TERM 16800 \
+            python -m pytest -q -p no:cacheprovider \
+              -m "not gpu and not network" \
+              --durations=20 > .ci-out/pytest_full.out 2>&1
+          rc=$?
+          set -e
+          echo "pytest_exit=$rc" > .ci-out/pytest_full.exit
+          cat .ci-out/pytest_full.out
+          echo "pytest_exit=$rc (step exits with the real pytest code)"
+          exit $rc
+
+      - name: Upload gate evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ccta-public-ci-evidence-${{ github.sha }}
+          path: .ci-out/
+          if-no-files-found: error
+          include-hidden-files: true
+          retention-days: 30

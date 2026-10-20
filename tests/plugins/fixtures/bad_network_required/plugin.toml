@@ -1,0 +1,7 @@
+id = "bad-network"
+version = "0.1.0"
+kind = "DETERMINISTIC_ENGINE"
+entrypoint = "x:run"
+capabilities = ["MEASUREMENT_SET"]
+claims = ["CLM-MEAS-001"]
+network_required = true
